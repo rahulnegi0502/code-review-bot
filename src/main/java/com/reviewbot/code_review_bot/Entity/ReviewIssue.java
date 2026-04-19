@@ -40,6 +40,9 @@ public class ReviewIssue {
     @Column(nullable = false)
     private LocalDateTime reviewedAt;
 
+    @Column(nullable = true)
+    private String filePath;
+
     @PrePersist
     public void prePersist() {
         reviewedAt = LocalDateTime.now();

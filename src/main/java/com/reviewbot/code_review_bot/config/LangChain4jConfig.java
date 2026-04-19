@@ -1,6 +1,7 @@
 package com.reviewbot.code_review_bot.config;
 
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.reviewbot.code_review_bot.agent.CodeReviewAgent;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.service.AiServices;
@@ -34,5 +35,10 @@ public class LangChain4jConfig {
         return AiServices.builder(CodeReviewAgent.class)
                 .chatLanguageModel(model)
                 .build();
+    }
+
+    @Bean
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper();
     }
 }

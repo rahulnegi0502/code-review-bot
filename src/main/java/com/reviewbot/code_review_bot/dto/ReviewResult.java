@@ -14,5 +14,6 @@ public class ReviewResult {
         private String severity;   // CRITICAL, MAJOR, MINOR
         private String type;       // BUG, PERFORMANCE, SECURITY, STYLE
         private String suggestion;
+        private String filePath;
     }
 }

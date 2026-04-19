@@ -26,6 +26,7 @@ public interface CodeReviewAgent {
                                                                               "lineNumber": <int>,
                                                                               "severity": "<CRITICAL|MAJOR|MINOR>",
                                                                               "type": "<BUG|PERFORMANCE|SECURITY|STYLE>",
+                                                                              "filePath": "<file path>",
                                                                               "suggestion": "<fix>"
                                                                             }
                                                                           ]
