@@ -33,8 +33,8 @@ public interface CodeReviewAgent {
                                                                         }
             """)
     @UserMessage("Review this diff:\n\n{{diff}}")
-    Response<String> review(@V("diff") String diff);
+    String review(@V("diff") String diff);
 
     @UserMessage("{{message}}")
-    Response<String> continueResponse(@V("message") String message);
+    String continueResponse(@V("message") String message);
 }

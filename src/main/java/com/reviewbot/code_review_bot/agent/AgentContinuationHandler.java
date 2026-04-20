@@ -1,7 +1,5 @@
 package com.reviewbot.code_review_bot.agent;
 
-import dev.langchain4j.model.output.FinishReason;
-import dev.langchain4j.model.output.Response;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -16,45 +14,66 @@ public class AgentContinuationHandler {
 
     public String getCompleteResponse(String diff) {
 
-        // First call
-        Response<String> response = codeReviewAgent.review(diff);
-        String fullContent = response.content();
-        FinishReason finishReason = response.finishReason();
+        // First call — returns String directly now
+        String fullContent = codeReviewAgent.review(diff);
+        log.info("First call completed");
 
-        log.info("First call finish reason: {}", finishReason);
+        // Guard — if first call returned nothing
+        if (fullContent == null || fullContent.isBlank()) {
+            log.warn("First call returned blank response");
+            return null;
+        }
+
+        log.debug("First call response: {}", fullContent);
 
         // Continue if response was cut
         int continuationCount = 0;
-        while (isIncomplete(finishReason, fullContent)
+        while (isIncomplete(fullContent)
                 && continuationCount < MAX_CONTINUATIONS) {
 
             continuationCount++;
-            log.warn("Response cut. Requesting continuation {}/{}",
+            log.warn("Response incomplete. Requesting continuation {}/{}",
                     continuationCount, MAX_CONTINUATIONS);
 
-            Response<String> continuation = codeReviewAgent.continueResponse(
+            try {
+                log.info("Waiting 10s before continuation to avoid rate limit...");
+                Thread.sleep(10000);  // wait 10 seconds
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+
+            String continuation = codeReviewAgent.continueResponse(
                     "Continue the JSON exactly from where you stopped. " +
                             "Do not repeat anything already written. " +
                             "Just continue the JSON:\n" + fullContent
             );
 
-            fullContent = mergeResponses(fullContent, continuation.content());
-            finishReason = continuation.finishReason();
+            // Guard — if continuation returned nothing
+            if (continuation == null || continuation.isBlank()) {
+                log.warn("Continuation {} returned blank — stopping",
+                        continuationCount);
+                break;
+            }
 
-            log.info("Continuation {} finish reason: {}", continuationCount, finishReason);
+            fullContent = mergeResponses(fullContent, continuation);
+            log.info("Continuation {} completed", continuationCount);
+            log.debug("Merged response: {}", fullContent);
         }
 
-        if (isIncomplete(finishReason, fullContent)) {
-            log.error("Response still incomplete after {} continuations", MAX_CONTINUATIONS);
+        if (isIncomplete(fullContent)) {
+            log.error("Response still incomplete after {} continuations",
+                    MAX_CONTINUATIONS);
         }
 
         return fullContent;
     }
 
-    private boolean isIncomplete(FinishReason reason, String content) {
-        if (FinishReason.LENGTH.equals(reason)) return true;
-        if (content != null && !content.trim().endsWith("]}")) return true;
-        return false;
+    // ── Helpers ────────────────────────────────────────────────────────
+
+    private boolean isIncomplete(String content) {
+        if (content == null || content.isBlank()) return true;
+        // Valid complete JSON must end with ]}
+        return !content.trim().endsWith("]}");
     }
 
     private String mergeResponses(String first, String continuation) {
